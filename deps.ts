@@ -1,4 +1,8 @@
-export { join as joinPath } from "https://deno.land/std@0.214.0/path/mod.ts";
+export {
+  dirname,
+  join as joinPath,
+  resolve as resolvePath,
+} from "https://deno.land/std@0.214.0/path/mod.ts";
 
 export { parse as parseYaml } from "https://deno.land/std@0.214.0/yaml/mod.ts";
 
