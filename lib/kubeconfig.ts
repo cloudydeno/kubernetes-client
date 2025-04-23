@@ -5,7 +5,7 @@
  * be relative to the file they were originally found in
  */
 
-import { joinPath, parseYaml } from '../deps.ts';
+import { dirname, joinPath, parseYaml, resolvePath } from '../deps.ts';
 
 export class KubeConfig {
   constructor(
@@ -14,7 +14,10 @@ export class KubeConfig {
 
   static async readFromPath(path: string): Promise<KubeConfig> {
     const data = parseYaml(await Deno.readTextFile(path));
-    if (isRawKubeConfig(data)) return new KubeConfig(data);
+    if (isRawKubeConfig(data)) {
+      resolveKubeConfigPaths(dirname(path), data);
+      return new KubeConfig(data);
+    }
     throw new Error(`KubeConfig's "apiVersion" and "kind" fields weren't set`);
   }
 
@@ -348,6 +351,31 @@ export interface RawKubeConfig {
     'extensions'?: Array<NamedExtension>;
   };
 }
+
+function resolveKubeConfigPaths(dir: string, data: RawKubeConfig): void {
+  const { clusters = [], users = [] } = data;
+  for (const { cluster } of clusters) {
+    const ca = cluster["certificate-authority"];
+    if (ca) {
+      cluster["certificate-authority"] = resolvePath(dir, ca);
+    }
+  }
+  for (const { user } of users) {
+    const key = user["client-key"];
+    const cert = user["client-certificate"];
+    const token = user.tokenFile;
+    if (token) {
+      user.tokenFile = resolvePath(dir, token);
+    }
+    if (key) {
+      user["client-key"] = resolvePath(dir, key);
+    }
+    if (cert) {
+      user["client-certificate"] = resolvePath(dir, cert);
+    }
+  }
+}
+
 function isRawKubeConfig(data: any): data is RawKubeConfig {
   return data && data.apiVersion === 'v1' && data.kind === 'Config';
 }
