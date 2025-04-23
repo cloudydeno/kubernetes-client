@@ -1,6 +1,6 @@
 {
   "name": "@cloudydeno/kubernetes-client",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "exports": {
     "./lib/contract.ts": "./lib/contract.ts",
     "./lib/kubeconfig.ts": "./lib/kubeconfig.ts",
