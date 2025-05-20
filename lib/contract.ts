@@ -59,6 +59,7 @@ export interface RestClient {
   performRequest(opts: RequestOptions & {expectJson: true}): Promise<JSONValue>;
   performRequest(opts: RequestOptions): Promise<Uint8Array>;
   defaultNamespace?: string;
+  close?(): void;
 }
 
 // Structures that JSON can encode directly
