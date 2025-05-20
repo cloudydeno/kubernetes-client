@@ -1,4 +1,4 @@
-import { WatchEvent, WatchEventError, WatchEventBookmark } from './contract.ts';
+import type { WatchEvent, WatchEventError, WatchEventBookmark } from './contract.ts';
 
 /**
  * Implementation of a Kubernetes List/Watch client which furnishes a view of the watched data.
@@ -236,7 +236,7 @@ loop: while (!this.#cancelled) {
     }
   }
 
-  async *observeAll(): AsyncIterableIterator<ReflectorEvent<T,S>> {
+  async *observeAll(signal?: AbortSignal): AsyncIterableIterator<ReflectorEvent<T,S>> {
     // take snapshots for consistent state
     const knownVer = this.#latestVersion;
     const knownRef = this.#latestRef;
@@ -255,10 +255,11 @@ loop: while (!this.#cancelled) {
     // cycle between catching up and being up-to-date/waiting forever
 
     let ref = knownRef;
-    while (true) {
+    while (!signal?.aborted) {
       // send all pending events
       // console.log('refobs flushing from', ref);
       let next: NextEvent<T,S> | undefined;
+      // deno-lint-ignore no-cond-assign
       while (next = this.#nextEvents.get(ref)) {
         // console.log('refobs got', next.evt.type, next.ref)
         yield next.evt;
