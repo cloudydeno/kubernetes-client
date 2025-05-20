@@ -1,5 +1,5 @@
-import { map } from "jsr:@cloudydeno/stream-observables@1.4.1/transforms/map.ts";
-import { EOF, external } from "jsr:@cloudydeno/stream-observables@1.4.1/sources/external.ts";
+import { map } from "jsr:@cloudydeno/stream-observables@^1/transforms/map.ts";
+import { EOF, external } from "jsr:@cloudydeno/stream-observables@^1/sources/external.ts";
 
 import { JSONValue, KubernetesTunnel, RequestOptions } from "../lib/contract.ts";
 import { KubeConfigRestClient } from "../transports/via-kubeconfig.ts";
