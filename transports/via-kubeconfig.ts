@@ -1,7 +1,7 @@
 import { TextLineStream } from '../deps.ts';
-import { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
+import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
-import { KubeConfig, KubeConfigContext } from '../lib/kubeconfig.ts';
+import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';
 
 const isVerbose = Deno.args.includes('--verbose');
 

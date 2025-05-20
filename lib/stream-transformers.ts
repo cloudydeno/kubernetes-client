@@ -1,4 +1,4 @@
-import { JSONObject, WatchEvent } from './contract.ts';
+import type { JSONObject, WatchEvent } from './contract.ts';
 
 function parseJsonLine(line: string, controller: TransformStreamDefaultController<JSONObject>) {
   if (!line.startsWith('{')) {
