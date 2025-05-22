@@ -1,7 +1,7 @@
 import { TextLineStream } from '../deps.ts';
-import { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
+import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
-import { KubeConfig, KubeConfigContext } from '../lib/kubeconfig.ts';
+import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';
 
 const isVerbose = Deno.args.includes('--verbose');
 
@@ -39,7 +39,7 @@ const isVerbose = Deno.args.includes('--verbose');
 export class KubeConfigRestClient implements RestClient {
   constructor(
     protected ctx: KubeConfigContext,
-    protected httpClient: unknown,
+    protected httpClient: Deno.HttpClient | null,
   ) {
     this.defaultNamespace = ctx.defaultNamespace || 'default';
   }
@@ -75,7 +75,7 @@ export class KubeConfigRestClient implements RestClient {
     const serverTls = await ctx.getServerTls();
     const tlsAuth = await ctx.getClientTls();
 
-    let httpClient: unknown;
+    let httpClient: Deno.HttpClient | null = null;
     if (serverTls || tlsAuth) {
       if (Deno.createHttpClient) {
         httpClient = Deno.createHttpClient({
@@ -92,6 +92,10 @@ export class KubeConfigRestClient implements RestClient {
     }
 
     return new this(ctx, httpClient);
+  }
+
+  close() {
+    this.httpClient?.close();
   }
 
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;

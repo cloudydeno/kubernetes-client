@@ -1,17 +1,23 @@
 {
   "name": "@cloudydeno/kubernetes-client",
   "version": "0.7.4",
+  "imports": {
+    "./deps.ts": "./deps_jsr.ts"
+  },
   "exports": {
     "./lib/contract.ts": "./lib/contract.ts",
     "./lib/kubeconfig.ts": "./lib/kubeconfig.ts",
     "./lib/reflector.ts": "./lib/reflector.ts",
     "./lib/stream-transformers.ts": "./lib/stream-transformers.ts",
     "./transports/mod.ts": "./transports/mod.ts",
+    "./transports/via-kubeconfig.ts": "./transports/via-kubeconfig.ts",
+    "./transports/via-kubectl-raw.ts": "./transports/via-kubectl-raw.ts",
+    "./tunnel-beta/via-websocket.ts": "./tunnel-beta/via-websocket.ts",
     ".": "./mod.ts"
   },
   "publish": {
     "exclude": [
-      "deps_https.ts",
+      "deps.ts",
       ".github"
     ]
   }

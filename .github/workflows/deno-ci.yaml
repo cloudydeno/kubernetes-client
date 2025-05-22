@@ -17,6 +17,9 @@ jobs:
         - v1.43
         - v1.45
         - v2.0
+        - v2.1
+        - v2.2
+        - v2.3
         - canary
       fail-fast: false # run each branch to completion
 
@@ -34,9 +37,9 @@ jobs:
     - name: Cache https://
       uses: actions/cache@v4
       with:
-        path: ~/.cache/deno/deps/https
-        key: deno-https/v1-${{ github.sha }}
-        restore-keys: deno-https/v1-
+        path: ~/.cache/deno
+        key: denodir-${{ matrix.deno-version }}-${{ github.sha }}
+        restore-keys: denodir-${{ matrix.deno-version }}-
 
     - name: Check mod.ts
       run: time deno check --unstable-http mod.ts
@@ -52,24 +55,27 @@ jobs:
     name: Check JSR Publish
 
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
-
-    - name: Use Deno v1
-      uses: denoland/setup-deno@v2
-      with:
-        deno-version: v1
+    - uses: denoland/setup-deno@v2
+    - uses: actions/checkout@v4
 
     - name: Check publish rules
-      run: |
-        mv deps.ts deps_https.ts
-        mv deps_jsr.ts deps.ts
-        undo () {
-          ARG=$?
-          mv deps.ts deps_jsr.ts
-          mv deps_https.ts deps.ts
-          exit $ARG
-        }
-        trap undo EXIT
+      run: deno publish --dry-run --allow-dirty
 
-        deno publish --dry-run --allow-dirty
+  publish:
+    runs-on: ubuntu-latest
+    name: JSR Publish
+    needs:
+    - check
+    - check-publish
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - uses: denoland/setup-deno@v2
+    - uses: actions/checkout@v4
+
+    - name: Publish now
+      run: deno publish
