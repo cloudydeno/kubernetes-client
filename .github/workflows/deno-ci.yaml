@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Use Deno ${{ matrix.deno-version }}
       uses: denoland/setup-deno@v2
@@ -56,7 +56,7 @@ jobs:
 
     steps:
     - uses: denoland/setup-deno@v2
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check publish rules
       run: deno publish --dry-run --allow-dirty
@@ -75,7 +75,7 @@ jobs:
 
     steps:
     - uses: denoland/setup-deno@v2
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Publish now
       run: deno publish
