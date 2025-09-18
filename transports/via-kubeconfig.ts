@@ -1,4 +1,4 @@
-import { TextLineStream } from '../deps.ts';
+import { TextLineStream } from '@std/streams/text-line-stream';
 import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
 import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';

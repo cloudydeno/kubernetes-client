@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --unstable --allow-env
 
-import { TextLineStream } from '../deps.ts';
+import { TextLineStream } from '@std/streams/text-line-stream';
 import { autoDetectClient } from '../mod.ts';
 
 const client = await autoDetectClient();

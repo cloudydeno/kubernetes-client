@@ -5,7 +5,7 @@
 // you can launch `kubectl port-forward` as a child process to handle this.
 // This example shows how you might run specific kubectl commands.
 
-import { TextLineStream } from '../deps.ts';
+import { TextLineStream } from '@std/streams/text-line-stream';
 import { KubectlRawRestClient } from "../mod.ts";
 
 const client = new KubectlRawRestClient();
