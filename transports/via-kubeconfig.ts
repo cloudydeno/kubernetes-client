@@ -3,7 +3,7 @@ import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '..
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
 import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';
 
-const isVerbose = Deno.args.includes('--verbose');
+const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
 /**
  * A RestClient which uses a KubeConfig to talk directly to a Kubernetes endpoint.
@@ -17,12 +17,9 @@ const isVerbose = Deno.args.includes('--verbose');
  *
  * Deno flags to use this client:
  * Basic KubeConfig: --allow-read=$HOME/.kube --allow-net --allow-env
- * CA cert fix: --unstable-http --allow-read=$HOME/.kube --allow-net --allow-env
- * In-cluster 1: --allow-read=/var/run/secrets/kubernetes.io --allow-net --unstable-http
- * In-cluster 2: --allow-read=/var/run/secrets/kubernetes.io --allow-net --cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+ * In-cluster: --allow-read=/var/run/secrets/kubernetes.io --allow-net
  *
  * Unstable features:
- * - using the cluster's CA when fetching (otherwise pass --cert to Deno)
  * - using client auth authentication, if configured
  * - inspecting permissions and prompting for further permissions (TODO)
  *
@@ -77,7 +74,7 @@ export class KubeConfigRestClient implements RestClient {
 
     let httpClient: Deno.HttpClient | null = null;
     if (serverTls || tlsAuth) {
-      if (Deno.createHttpClient) {
+      if (globalThis.Deno && Deno.createHttpClient) {
         httpClient = Deno.createHttpClient({
           caCerts: serverTls ? [serverTls.serverCert] : [],
           //@ts-ignore-error deno unstable API. Not typed?
