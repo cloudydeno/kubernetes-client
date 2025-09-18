@@ -10,13 +10,24 @@ import { join as joinPath } from '@std/path/join';
 import { resolve as resolvePath } from '@std/path/resolve';
 import { parse as parseYaml } from '@std/yaml/parse';
 
+// Remap several Deno APIs so that this library can possibly work under NodeJS
+import { readFile } from 'node:fs/promises';
+async function readTextFile(path: string) {
+  const buffer = await readFile(path);
+  return buffer.toString();
+}
+function getEnv(key: string) {
+  if (globalThis.Deno) return Deno.env.get(key);
+  return globalThis.process.env[key];
+}
+
 export class KubeConfig {
   constructor(
     public readonly data: RawKubeConfig,
   ) {}
 
   static async readFromPath(path: string): Promise<KubeConfig> {
-    const data = parseYaml(await Deno.readTextFile(path));
+    const data = parseYaml(await readTextFile(path));
     if (isRawKubeConfig(data)) {
       resolveKubeConfigPaths(dirname(path), data);
       return new KubeConfig(data);
@@ -25,13 +36,17 @@ export class KubeConfig {
   }
 
   static async getDefaultConfig(): Promise<KubeConfig> {
-    const delim = Deno.build.os === 'windows' ? ';' : ':';
-    const path = Deno.env.get("KUBECONFIG");
+    const isWindows = globalThis.Deno
+      ? Deno.build.os === 'windows'
+      : globalThis.process.platform === 'win32';
+
+    const delim = isWindows ? ';' : ':';
+    const path = getEnv("KUBECONFIG");
     const paths = path ? path.split(delim) : [];
 
     if (!path) {
       // default file is ignored if it't not found
-      const defaultPath = joinPath(Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "/root", ".kube", "config");
+      const defaultPath = joinPath(getEnv("HOME") || getEnv("USERPROFILE") || "/root", ".kube", "config");
       try {
         return await KubeConfig.readFromPath(defaultPath);
       } catch (err: unknown) {
@@ -53,17 +68,20 @@ export class KubeConfig {
     baseUrl = 'https://kubernetes.default.svc.cluster.local',
     secretsPath = '/var/run/secrets/kubernetes.io/serviceaccount',
   }={}): Promise<KubeConfig> {
-    // Avoid interactive prompting for in-cluster secrets.
-    // These are not commonly used from an interactive session.
-    const readPermission = await Deno.permissions.query({name: 'read', path: secretsPath});
-    if (readPermission.state !== 'granted') {
-      throw new Error(`Lacking --allow-read=${secretsPath}`);
+
+    if (globalThis.Deno) {
+      // Avoid interactive prompting for in-cluster secrets.
+      // These are not commonly used from an interactive session.
+      const readPermission = await Deno.permissions.query({name: 'read', path: secretsPath});
+      if (readPermission.state !== 'granted') {
+        throw new Error(`Lacking --allow-read=${secretsPath}`);
+      }
     }
 
     const [namespace, caData, tokenData] = await Promise.all([
-      Deno.readTextFile(joinPath(secretsPath, 'namespace')),
-      Deno.readTextFile(joinPath(secretsPath, 'ca.crt')),
-      Deno.readTextFile(joinPath(secretsPath, 'token')),
+      readTextFile(joinPath(secretsPath, 'namespace')),
+      readTextFile(joinPath(secretsPath, 'ca.crt')),
+      readTextFile(joinPath(secretsPath, 'token')),
     ]);
 
     return new KubeConfig({
@@ -152,7 +170,7 @@ export class KubeConfigContext {
   } | null> {
     let serverCert = atob(this.cluster["certificate-authority-data"] ?? '') || null;
     if (!serverCert && this.cluster["certificate-authority"]) {
-      serverCert = await Deno.readTextFile(this.cluster["certificate-authority"]);
+      serverCert = await readTextFile(this.cluster["certificate-authority"]);
     }
 
     if (serverCert) {
@@ -167,12 +185,12 @@ export class KubeConfigContext {
   } | null> {
     let userCert = atob(this.user["client-certificate-data"] ?? '') || null;
     if (!userCert && this.user["client-certificate"]) {
-      userCert = await Deno.readTextFile(this.user["client-certificate"]);
+      userCert = await readTextFile(this.user["client-certificate"]);
     }
 
     let userKey = atob(this.user["client-key-data"] ?? '') || null;
     if (!userKey && this.user["client-key"]) {
-      userKey = await Deno.readTextFile(this.user["client-key"]);
+      userKey = await readTextFile(this.user["client-key"]);
     }
 
     if (!userKey && !userCert && this.user.exec) {
@@ -202,7 +220,7 @@ export class KubeConfigContext {
       return `Bearer ${this.user.token}`;
 
     } else if (this.user.tokenFile) {
-      const token = await Deno.readTextFile(this.user.tokenFile);
+      const token = await readTextFile(this.user.tokenFile);
       return `Bearer ${token.trim()}`;
 
     } else if (this.user['auth-provider']) {

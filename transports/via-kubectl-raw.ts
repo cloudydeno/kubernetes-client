@@ -2,7 +2,7 @@ import { TextLineStream } from '@std/streams/text-line-stream';
 import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
 
-const isVerbose = Deno.args.includes('--verbose');
+const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
 /**
  * A RestClient for easily running on a developer's local machine.

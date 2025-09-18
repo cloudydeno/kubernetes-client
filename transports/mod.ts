@@ -26,7 +26,7 @@ export class ClientProviderChain {
         const srcName = `  - ${label} `;
         if (err instanceof Error) {
           // if (err.message !== 'No credentials found') {
-            errors.push(srcName+(err.stack?.split('\n')[0] || err.message));
+            errors.push(srcName+(err.cause || err.stack?.split('\n')[0] || err.message));
           // }
         } else if (err) {
           errors.push(srcName+err.toString());
