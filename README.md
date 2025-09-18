@@ -1,6 +1,6 @@
-![Deno CI](https://github.com/danopia/deno-kubernetes_client/workflows/CI/badge.svg?branch=main)
+[![CI](https://github.com/cloudydeno/kubernetes-client/actions/workflows/deno-ci.yaml/badge.svg)](https://github.com/cloudydeno/kubernetes-client/actions/workflows/deno-ci.yaml)
 
-# `/x/kubernetes_client`
+# `jsr:@cloudydeno/kubernetes-client`
 
 This module implements several ways of sending authenticated requests
 to the Kubernetes API from deno scripts.
@@ -61,6 +61,7 @@ Check out `lib/contract.ts` to see the type/API contract.
     * `v0.7.1` on `2023-09-24`: Update std dependencies to `/std@0.202.0`
     * `v0.7.2` on `2023-12-29`: Fix `WebsocketTunnel` for Deno v1.38 change
     * `v0.7.3` on `2024-09-10`: Drop support for Deno v1.40 and earlier.
+    * `v0.7.3` on `2025-09-18`: Drop `/x/` publication, now JSR-only
 
 * `v0.6.0` on `2023-08-08`:
     Introduce an API for opening Kubernetes tunnels, useful for `PodExec` and others.
@@ -152,9 +153,9 @@ Each client has different pros and cons:
     * `forInCluster()` uses a pod's ServiceAccount to automatically authenticate.
         This is what is used when you deploy your script to a cluster.
 
-        Flags: `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local` plus either `--unstable` or `--cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`
+        Flags: `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local`
 
-        Lazy flags: `--allow-read --allow-net --unstable`
+        Lazy flags: `--allow-read --allow-net`
 
     * `forKubectlProxy()` expects a `kubectl proxy` command to be running and talks directly to it without auth.
 
@@ -179,9 +180,9 @@ This module is only implementing the HTTP/transport part of talking to Kubernete
 You'll likely also want Typescript interfaces around actually working with Kubernetes resources.
 
 API typings are available in a sibling project:
-[kubernetes_apis](https://github.com/danopia/deno-kubernetes_apis)
+[kubernetes-apis](https://github.com/danopia/kubernetes-apis)
 published to
-[/x/kubernetes_apis](https://deno.land/x/kubernetes_apis).
+[@cloudydeno/kubernetes-apis](https://jsr.io/@cloudydeno/kubernetes-apis).
 
 Of course, for some situations it might make sense to issue specific requests directly
 in which case using this client library alone might make more sense.

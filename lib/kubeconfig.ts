@@ -5,7 +5,10 @@
  * be relative to the file they were originally found in
  */
 
-import { dirname, joinPath, parseYaml, resolvePath } from '../deps.ts';
+import { dirname } from '@std/path/dirname';
+import { join as joinPath } from '@std/path/join';
+import { resolve as resolvePath } from '@std/path/resolve';
+import { parse as parseYaml } from '@std/yaml/parse';
 
 export class KubeConfig {
   constructor(
