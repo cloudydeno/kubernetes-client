@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --unstable --allow-env
+#!/usr/bin/env -S deno run --allow-env --allow-read=/var/run/secrets/kubernetes.io
 
 import { TextLineStream } from '@std/streams/text-line-stream';
 import { autoDetectClient } from '../mod.ts';

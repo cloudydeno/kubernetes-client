@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --unstable-http --allow-env --allow-read=/var/run/secrets/kubernetes.io
+#!/usr/bin/env -S deno run --allow-env --allow-read=/var/run/secrets/kubernetes.io
 
 import { autoDetectClient } from '../mod.ts';
 
