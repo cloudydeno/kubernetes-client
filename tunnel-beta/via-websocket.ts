@@ -77,22 +77,25 @@ export class WebsocketRestClient extends KubeConfigRestClient {
  */
 export class WebsocketTunnel implements KubernetesTunnel {
   constructor(
-    private readonly wss: WebSocketStream,
+    private readonly wssHandle: { close: () => void },
     wssConn: WebSocketConnection,
   ) {
     this.subProtocol = wssConn.protocol;
     this.done = this.upstreamChannels.observable
       .pipeThrough(mergeAll())
       .pipeThrough(wssConn)
-      .pipeThrough(map(async chunk => {
+      .pipeThrough(map(chunk => {
+        // Route received packet to a particular stream
         if (typeof chunk == 'string') throw new Error(`Unexpected`);
         const channelNum = chunk.at(0);
         if (typeof channelNum != 'number') throw new Error(`Unexpected`);
         const downstream = this.downstreamChannels.get(channelNum);
         if (!downstream) throw new Error(`Channel ${channelNum} not reading`);
-        await downstream.write(chunk.slice(1));
+        return { downstream, chunk: chunk.slice(1) };
       }))
-      .pipeTo(new WritableStream())
+      .pipeTo(new WritableStream({
+        write: (pkt) => pkt.downstream.write(pkt.chunk),
+      }))
       .finally(() => {
         this.upstreamChannels.next(EOF);
         for (const downstream of this.downstreamChannels.values()) {
@@ -123,7 +126,7 @@ export class WebsocketTunnel implements KubernetesTunnel {
 
     return Promise.resolve({
       writable: maybe(opts.writable, () => {
-        const clientToServer = new ChannelPrependTransform(streamIndex);
+        const clientToServer = new ChannelPrependTransform(streamIndex, this.subProtocol);
         this.upstreamChannels.next(clientToServer.readable);
         return clientToServer.writable;
       }),
@@ -143,7 +146,7 @@ export class WebsocketTunnel implements KubernetesTunnel {
   }
 
   stop(): Promise<void> {
-    this.wss.close();
+    this.wssHandle.close();
     return Promise.resolve();
   }
 }
@@ -153,7 +156,7 @@ function maybe<Tcond extends boolean, Tres>(cond: Tcond, factory: () => Tres) {
 }
 
 class ChannelPrependTransform extends TransformStream<Uint8Array, Uint8Array> {
-  constructor(channelOctet: number) {
+  constructor(channelOctet: number, protocolName: string) {
     super({
       transform(chunk, ctlr) {
         const buf = new ArrayBuffer(chunk.byteLength + 1);
@@ -162,10 +165,11 @@ class ChannelPrependTransform extends TransformStream<Uint8Array, Uint8Array> {
         array.set(chunk, 1);
         ctlr.enqueue(array);
       },
-      // to implement proposed v5 of the tunnel protocol:
-      // flush(ctlr) {
-      //   ctlr.enqueue(new Uint8Array([255, channelOctet]));
-      // },
+      flush(ctlr) {
+        if (protocolName == 'v5.channel.k8s.io') {
+          ctlr.enqueue(new Uint8Array([255, channelOctet]));
+        }
+      },
     });
   }
 }

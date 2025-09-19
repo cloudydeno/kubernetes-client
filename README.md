@@ -103,7 +103,7 @@ please feel free to file a Github Issue.
     * `v0.7.4` on `2025-04-23`: Add support for relative paths in Kubeconfig (#24, thanks!)
     * `v0.7.5` on `2025-05-22`: More `abortSignal`, make RestClients closable
     * `v0.7.6` on `2025-09-18`: Drop `/x/` publication, now JSR-only
-    * `v0.7.7` on `2025-09-19`: Update docs, target only Deno v2.
+    * `v0.7.7` on `2025-09-19`: Update docs, target only Deno v2, add v5.channel.k8s.io
 
 * `v0.6.0` on `2023-08-08`:
     Introduce an API for opening Kubernetes tunnels, useful for `PodExec` and others.

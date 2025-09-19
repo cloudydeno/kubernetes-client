@@ -91,7 +91,7 @@ export class KubectlRawRestClient implements RestClient {
     if (opts.abortSignal?.aborted) throw new Error(`Given AbortSignal is already aborted`);
 
     if (opts.expectTunnel) {
-      if (opts.expectTunnel.includes('v4.channel.k8s.io')) {
+      if (opts.expectTunnel.includes('v5.channel.k8s.io')) {
         // We can implement PodExec with `kubectl exec`, for this specific route:
         const match = new URLPattern({
           pathname: '/api/:version/namespaces/:namespace/pods/:podName/exec',
@@ -185,7 +185,7 @@ export class KubectlRawRestClient implements RestClient {
 
     return {
       transportProtocol: 'Opaque',
-      subProtocol: 'v4.channel.k8s.io',
+      subProtocol: 'v5.channel.k8s.io',
       ready: () => Promise.resolve(), // we don't actually know!
       stop: () => Promise.resolve(p.kill()),
       getChannel: (opts) => {
