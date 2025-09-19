@@ -100,8 +100,10 @@ please feel free to file a Github Issue.
     * `v0.7.1` on `2023-09-24`: Update std dependencies to `/std@0.202.0`
     * `v0.7.2` on `2023-12-29`: Fix `WebsocketTunnel` for Deno v1.38 change
     * `v0.7.3` on `2024-09-10`: Drop support for Deno v1.40 and earlier.
-    * `v0.7.3` on `2025-09-18`: Drop `/x/` publication, now JSR-only
-    * `v0.7.4` on `2025-09-19`: Update docs, target only Deno v2.
+    * `v0.7.4` on `2025-04-23`: Add support for relative paths in Kubeconfig (#24, thanks!)
+    * `v0.7.5` on `2025-05-22`: More `abortSignal`, make RestClients closable
+    * `v0.7.6` on `2025-09-18`: Drop `/x/` publication, now JSR-only
+    * `v0.7.7` on `2025-09-19`: Update docs, target only Deno v2.
 
 * `v0.6.0` on `2023-08-08`:
     Introduce an API for opening Kubernetes tunnels, useful for `PodExec` and others.
