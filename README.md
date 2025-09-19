@@ -3,26 +3,22 @@
 # `jsr:@cloudydeno/kubernetes-client`
 
 This module implements several ways of sending authenticated requests
-to the Kubernetes API from deno scripts.
+to the Kubernetes API from Deno programs.
 
 Kubernetes is a complex architechure which likes using sophisticated networking concepts,
-while Deno is a relatively young runtime, so there's some mismatch in capabilities.
-Therefor one client implementation cannot work in every case,
-and different Deno flags enable supporting different setups.
-
-This library is intended as a building block.
-If you are unsure how to issue a specific request from your own library/code,
-or if your usage results in any `TODO: ...` error message from my code,
-please feel free to file a Github Issue.
+while Deno is a younger runtime, so there's some mismatch in capabilities.
+Deno also has a granular permission system controlling what a program can access.
+Therefore different Deno flags can be given to your program depending on where you are running it.
 
 ## Usage
 
 Here's a basic request, listing all Pods in the `default` namespace.
 It uses the `autoDetectClient()` entrypoint which returns the first usable client.
 
-Note: This example shows a manual HTTP request.
+Note: The below example shows a manual HTTP request.
+This library is intended as a building block for issuing raw HTTP requests.
 To use the Kubernetes APIs more easily, consider also using
-[/x/kubernetes_apis](https://deno.land/x/kubernetes_apis)
+[@cloudydeno/kubernetes-apis](https://jsr.io/@cloudydeno/kubernetes-apis).
 
 ```ts
 import { autoDetectClient } from 'https://deno.land/x/kubernetes_client/mod.ts';
@@ -38,17 +34,60 @@ console.log(podList);
 // see demo.ts for more request examples (streaming responses, etc)
 ```
 
-To get started on local development, `autoDetectClient` will most likely
-decide to call out to your `kubectl`
-installation to make each network call.
-This only requires the `--allow-run=kubectl` Deno flag.
+## Client Implementations
 
-To use other clients, more flags are necesary.
-See "Client Implementations" below for more information on flags and other HTTP clients.
+The available clients are:
+
+1. `InCluster` which uses the current pod's service account to talk to the control plane.
+    Use with Deno flags: `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local`
+
+1. `KubectlRaw` which will run individual `kubectl` commands to send requests to Kubernetes.
+    This can be helpful when connecting to a cluster from a laptop.
+    Authentication won't be a problem since `kubectl` already handles all of that.
+    Use with Deno flag `--allow-run=kubectl` to authorize this client.
+
+1. `KubeConfig` which reads your `~/.kube/config` file and attempts to connect to the current default cluster.
+    Usually this works, but it might not always. Some of the issues would be fixable given a bug report.
+    You'll probably want to pass at least  `--allow-env --allow-net --allow-read=$HOME/.kube` to Deno.
+
+1. `KubectlProxy` which simply sends HTTP requests to `http://localhost:8081`.
+    You'll need to first launch `kubectl proxy` in a separate terminal/shell and leave it running.
+    Use with Deno flag `--allow-net=localhost:8001` to authorize this client.
+
+An error message is shown when no client is usable, something like this:
+
+```
+Error: Failed to load any possible Kubernetes clients:
+  - InCluster PermissionDenied: Requires read access to "/var/run/secrets/kubernetes.io/serviceaccount/namespace", run again with the --allow-read flag
+  - KubeConfig PermissionDenied: Requires env access to "KUBECONFIG", run again with the --allow-env flag
+  - KubectlProxy PermissionDenied: Requires net access to "localhost:8001", run again with the --allow-net flag
+  - KubectlRaw PermissionDenied: Requires run access to "kubectl", run again with the --allow-run flag
+```
+
+## Programmatic API
+
+You can also directly instantiate a particular client if you don't want to depend on autodetection.
+
+* `KubectlRawRestClient` invokes `kubectl --raw` for every HTTP call.
+    Dependable for development, though several methods are not available due to kubectl limitations.
+
+* `KubeConfigRestClient` uses `fetch()` to issue HTTP requests. There's a few different functions to configure it:
+
+    * `forInCluster()` uses a pod's ServiceAccount to automatically authenticate.
+
+    * `forKubectlProxy()` expects a `kubectl proxy` command to be runnin. This allows a full range-of-motion for development purposes regardless of the Kubernetes configuration.
+
+    * `readKubeConfig(path?, context?)` (or `forKubeConfig(config, context?)`) tries using the given config (or `$HOME/.kube/config` if none is given) as faithfully as possible. Passing a context name will override the `current-context` value from your config file.
+
+## Development
+
+Check out `lib/contract.ts` to see the type/API contract.
 
 The `kubectl` client logs the issued commands if `--verbose` is passed to the Deno program.
 
-Check out `lib/contract.ts` to see the type/API contract.
+If you are unsure how to issue a specific request from your own library/code,
+or if your usage results in any `TODO: ...` error message from my code,
+please feel free to file a Github Issue.
 
 ## Changelog
 
@@ -127,52 +166,6 @@ Check out `lib/contract.ts` to see the type/API contract.
 
 * `v0.1.0` on `2020-11-16`: Initial publication, with `KubectlRaw` and `InCluster` clients.
     Also includes `ReadableStream` transformers, useful for consuming watch streams.
-
-# Client Implementations
-
-An error message is shown when no client is usable, something like this:
-
-```
-Error: Failed to load any possible Kubernetes clients:
-  - InCluster PermissionDenied: Requires read access to "/var/run/secrets/kubernetes.io/serviceaccount/namespace", run again with the --allow-read flag
-  - KubeConfig PermissionDenied: Requires env access to "KUBECONFIG", run again with the --allow-env flag
-  - KubectlProxy PermissionDenied: Requires net access to "localhost:8001", run again with the --allow-net flag
-  - KubectlRaw PermissionDenied: Requires run access to "kubectl", run again with the --allow-run flag
-```
-
-Each client has different pros and cons:
-
-* `KubectlRawRestClient` invokes `kubectl --raw` for every HTTP call.
-    Excellent for development, though a couple APIs are not possible to implement.
-
-    Flags: `--allow-run=kubectl`
-
-* `KubeConfigRestClient` uses Deno's `fetch()` to issue HTTP requests.
-    There's a few different functions to configure it:
-
-    * `forInCluster()` uses a pod's ServiceAccount to automatically authenticate.
-        This is what is used when you deploy your script to a cluster.
-
-        Flags: `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local`
-
-        Lazy flags: `--allow-read --allow-net`
-
-    * `forKubectlProxy()` expects a `kubectl proxy` command to be running and talks directly to it without auth.
-
-        This allows a full range-of-motion for development purposes regardless of the Kubernetes configuration.
-
-        Flags: `--allow-net=localhost:8001` given that `kubectl proxy` is already running at that URL.
-
-    * `readKubeConfig(path?, context?)` (or `forKubeConfig(config, context?)`) tries using the given config (or `$HOME/.kube/config` if none is given) as faithfully as possible.
-
-        This requires a lot of flags depending on the config file,
-        and in some cases simply cannot work.
-        For example `https://<ip-address>` server values are not currently supported by Deno,
-        and invoking auth plugins such as `gcloud` aren't implemented yet,
-        so any short-lived tokens in the kubeconfig must already be fresh.
-        Trial & error works here :)
-
-        Entry-level flags: `--allow-env --allow-net --allow-read=$HOME/.kube`
 
 ## Related: API Typings
 

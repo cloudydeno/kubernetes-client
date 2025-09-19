@@ -44,7 +44,7 @@ jobs:
       run: deno install || rm deno.lock
 
     - name: Check mod.ts
-      run: time deno check --unstable-http mod.ts
+      run: time deno check mod.ts
 
     - name: Check demo.ts
       run: time deno check demo.ts
