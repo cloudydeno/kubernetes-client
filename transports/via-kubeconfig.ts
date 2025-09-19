@@ -17,12 +17,9 @@ const isVerbose = Deno.args.includes('--verbose');
  *
  * Deno flags to use this client:
  * Basic KubeConfig: --allow-read=$HOME/.kube --allow-net --allow-env
- * CA cert fix: --unstable-http --allow-read=$HOME/.kube --allow-net --allow-env
- * In-cluster 1: --allow-read=/var/run/secrets/kubernetes.io --allow-net --unstable-http
- * In-cluster 2: --allow-read=/var/run/secrets/kubernetes.io --allow-net --cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+ * In-cluster: --allow-read=/var/run/secrets/kubernetes.io --allow-net
  *
  * Unstable features:
- * - using the cluster's CA when fetching (otherwise pass --cert to Deno)
  * - using client auth authentication, if configured
  * - inspecting permissions and prompting for further permissions (TODO)
  *
@@ -80,14 +77,14 @@ export class KubeConfigRestClient implements RestClient {
       if (Deno.createHttpClient) {
         httpClient = Deno.createHttpClient({
           caCerts: serverTls ? [serverTls.serverCert] : [],
-          //@ts-ignore-error deno unstable API. Not typed?
           cert: tlsAuth?.userCert,
           key: tlsAuth?.userKey,
         });
       } else if (tlsAuth) {
-        console.error('WARN: cannot use certificate-based auth without --unstable');
+        console.error('WARN: cannot use certificate-based auth without --unstable-http');
       } else if (isVerbose) {
-        console.error('WARN: cannot have Deno trust the server CA without --unstable');
+        // This is no longer true:
+        console.error('WARN: cannot have Deno trust the server CA without --unstable-http');
       }
     }
 
