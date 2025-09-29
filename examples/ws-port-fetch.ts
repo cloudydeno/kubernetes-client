@@ -1,6 +1,7 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-net --unstable-net --cert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-import { type Dialer, Client } from "jsr:@cloudydeno/socket-fetch@0.2.1"
+// A library that can fetch HTTP over arbitrary streams, such as a pod port forward
+import { type Dialer, Client } from "jsr:@cloudydeno/socket-fetch@0.2.1";
 
 import { autoDetectClient, DropPortTransformer } from '@cloudydeno/kubernetes-client';
 const kubeClient = await autoDetectClient();

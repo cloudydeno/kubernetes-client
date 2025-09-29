@@ -110,6 +110,29 @@ export class WebsocketTunnel implements KubernetesTunnel {
     return this.websocket.protocol;
   }
 
+  public maxBufferedAmount: number = 64*1024;
+  public bufferIntervalMillis: number = 100;
+
+  private activeBufferDelay: Promise<void> | null = null;
+  private bufferDelay(): Promise<void> {
+    if (this.activeBufferDelay) {
+      return this.activeBufferDelay;
+    }
+    if (this.websocket.bufferedAmount < this.maxBufferedAmount) {
+      return Promise.resolve();
+    }
+    this.activeBufferDelay = new Promise(ok => {
+      const timer = setInterval(() => {
+        if (this.websocket.bufferedAmount < this.maxBufferedAmount) {
+          ok();
+          clearInterval(timer);
+          this.activeBufferDelay = null;
+        }
+      }, this.bufferIntervalMillis);
+    });
+    return this.activeBufferDelay;
+  }
+
   close(): Promise<void> {
     this.websocket.close(1000);
     return Promise.resolve();
@@ -136,38 +159,18 @@ export class WebsocketTunnel implements KubernetesTunnel {
       "Cannot get a WebSocket channel without a streamIndex.");
 
     return new WritableStream<Uint8Array>({
-      write: (chunk) => {
+      write: async (chunk) => {
+        await this.bufferDelay();
         this.websocket.send(prependChannel(streamIndex, chunk));
       },
-      close: () => {
+      close: async () => {
         if (this.websocket.protocol == 'v5.channel.k8s.io') {
+          await this.bufferDelay();
           this.websocket.send(prependChannel(255, new Uint8Array([streamIndex])));
         }
       },
-    });
+    }, new ByteLengthQueuingStrategy({ highWaterMark: 1024 }));
   }
-
-  /** @deprecated Use getWritableStream and/or getReadableStream */
-  getChannel<Treadable extends boolean, Twritable extends boolean>(opts: {
-    spdyHeaders?: Record<string, string | number> | undefined;
-    streamIndex?: number | undefined;
-    readable: Treadable;
-    writable: Twritable;
-  }): Promise<{
-    writable: Twritable extends true ? WritableStream<Uint8Array> : null;
-    readable: Treadable extends true ? ReadableStream<Uint8Array> : null;
-  }> {
-    return Promise.resolve({
-      writable: maybe(opts.writable, () =>
-        this.getWritableStream({ index: opts.streamIndex })),
-      readable: maybe(opts.readable, () =>
-        this.getReadableStream({ index: opts.streamIndex })),
-    });
-  }
-}
-
-function maybe<Tcond extends boolean, Tres>(cond: Tcond, factory: () => Tres) {
-  return (cond ? factory() : null) as (Tcond extends true ? Tres : null);
 }
 
 function prependChannel(channelOctet: number, chunk: Uint8Array): Uint8Array {

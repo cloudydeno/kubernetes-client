@@ -5,7 +5,7 @@ import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
 import { createConfigFromEnvironment, createConfigFromPath, createInClusterConfig, createSimpleUrlConfig } from "../lib/kubeconfig/create.ts";
 import type { KubeConfigContext } from "../lib/kubeconfig/context.ts";
 import type { KubeConfig } from "../lib/kubeconfig/config.ts";
-import { openWebsocketTunnel } from "./ws-tunnel.ts";
+import { openWebsocketTunnel } from "./websocket-tunnel.ts";
 
 const isVerbose = Deno.args.includes('--verbose');
 
