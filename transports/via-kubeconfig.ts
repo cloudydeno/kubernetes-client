@@ -1,7 +1,10 @@
 import { TextLineStream } from '@std/streams/text-line-stream';
+
 import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
-import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';
+import { createConfigFromEnvironment, createConfigFromPath, createInClusterConfig, createSimpleUrlConfig } from "../lib/kubeconfig/create.ts";
+import type { KubeConfigContext } from "../lib/kubeconfig/context.ts";
+import type { KubeConfig } from "../lib/kubeconfig/config.ts";
 
 const isVerbose = Deno.args.includes('--verbose');
 
@@ -43,15 +46,13 @@ export class KubeConfigRestClient implements RestClient {
   defaultNamespace?: string;
 
   static async forInCluster(): Promise<RestClient> {
-    return this.forKubeConfig(
-      await KubeConfig.getInClusterConfig());
+    return await this.forKubeConfig(
+      await createInClusterConfig());
   }
 
-  static forKubectlProxy(): Promise<RestClient> {
-    return this.forKubeConfig(
-      KubeConfig.getSimpleUrlConfig({
-        baseUrl: 'http://localhost:8001',
-      }));
+  static async forKubectlProxy(): Promise<RestClient> {
+    return await this.forKubeConfig(
+      createSimpleUrlConfig('http://localhost:8001'));
   }
 
   static async readKubeConfig(
@@ -59,8 +60,8 @@ export class KubeConfigRestClient implements RestClient {
     contextName?: string,
   ): Promise<RestClient> {
     return this.forKubeConfig(path
-      ? await KubeConfig.readFromPath(path)
-      : await KubeConfig.getDefaultConfig(), contextName);
+      ? await createConfigFromPath(path)
+      : await createConfigFromEnvironment(), contextName);
   }
 
   static async forKubeConfig(
@@ -68,31 +69,33 @@ export class KubeConfigRestClient implements RestClient {
     contextName?: string,
   ): Promise<RestClient> {
     const ctx = config.fetchContext(contextName);
+    return await this.forKubeConfigContext(ctx);
+  }
 
-    const serverTls = await ctx.getServerTls();
-    const tlsAuth = await ctx.getClientTls();
+  static async forKubeConfigContext(
+    ctx: KubeConfigContext,
+    signal?: AbortSignal,
+  ): Promise<RestClient> {
+    const serverTls = await ctx.getServerTls(signal);
+    const tlsAuth = await ctx.getClientTls(signal);
 
     let httpClient: Deno.HttpClient | null = null;
     if (serverTls || tlsAuth) {
-      if (Deno.createHttpClient) {
-        httpClient = Deno.createHttpClient({
-          caCerts: serverTls ? [serverTls.serverCert] : [],
-          cert: tlsAuth?.userCert,
-          key: tlsAuth?.userKey,
-        });
-      } else if (tlsAuth) {
-        console.error('WARN: cannot use certificate-based auth without --unstable-http');
-      } else if (isVerbose) {
-        // This is no longer true:
-        console.error('WARN: cannot have Deno trust the server CA without --unstable-http');
-      }
+      httpClient = Deno.createHttpClient?.({
+        caCerts: serverTls ? [serverTls.serverCert] : [],
+        cert: tlsAuth?.userCert,
+        key: tlsAuth?.userKey,
+      });
     }
 
-    return new this(ctx, httpClient);
+    const client = new this(ctx, httpClient);
+    signal?.addEventListener('abort', client.close);
+    return client;
   }
 
-  close() {
+  close: () => void = () => {
     this.httpClient?.close();
+    this.httpClient = null;
   }
 
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
