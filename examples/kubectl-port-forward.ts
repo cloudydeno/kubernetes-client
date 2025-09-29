@@ -1,12 +1,12 @@
 #!/usr/bin/env -S deno run --allow-run=kubectl --no-prompt
 
-// This libary does not implement Kubernetes port-forwarding.
+// This libary partially implements Kubernetes port-forwarding.
 // If you would like to serve ports on localhost that proxy to a pod,
-// you can launch `kubectl port-forward` as a child process to handle this.
+// you can launch `kubectl port-forward` as a child process to handle this more efficiently.
 // This example shows how you might run specific kubectl commands.
 
 import { TextLineStream } from '@std/streams/text-line-stream';
-import { KubectlRawRestClient } from "../mod.ts";
+import { KubectlRawRestClient } from '@cloudydeno/kubernetes-client';
 
 const client = new KubectlRawRestClient();
 

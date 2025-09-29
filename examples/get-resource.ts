@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read=/var/run/secrets/kubernetes.io
 
-import { autoDetectClient } from '../mod.ts';
+import { autoDetectClient } from '@cloudydeno/kubernetes-client';
 
 const client = await autoDetectClient();
 
