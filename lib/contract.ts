@@ -52,7 +52,7 @@ export interface KubernetesTunnel {
   stop(): Promise<void>;
 }
 
-export interface RestClient {
+export interface RestClient extends Disposable {
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
   performRequest(opts: RequestOptions & {expectStream: true; expectJson: true}): Promise<ReadableStream<JSONValue>>;
   performRequest(opts: RequestOptions & {expectStream: true}): Promise<ReadableStream<Uint8Array>>;

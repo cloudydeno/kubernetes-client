@@ -120,7 +120,9 @@ export class KubeConfigRestClient implements RestClient, Disposable {
     const headers: Record<string, string> = {};
 
     if (!this.ctx.cluster.server) throw new Error(`No server URL found in KubeConfig`);
-    const authHeader = await this.ctx.getAuthHeader();
+    const url = new URL(path, this.ctx.cluster.server).toString();
+
+    const authHeader = await this.ctx.getAuthHeader(opts.abortSignal);
     if (authHeader) {
       headers['Authorization'] = authHeader;
     }
@@ -131,7 +133,7 @@ export class KubeConfigRestClient implements RestClient, Disposable {
     const contentType = opts.contentType ?? (opts.bodyJson ? 'application/json' : undefined);
     if (contentType) headers['Content-Type'] = contentType;
 
-    const resp = await fetch(new URL(path, this.ctx.cluster.server), {
+    const resp = await fetch(url, {
       method: opts.method,
       body: opts.bodyStream ?? opts.bodyRaw ?? JSON.stringify(opts.bodyJson),
       redirect: 'error',

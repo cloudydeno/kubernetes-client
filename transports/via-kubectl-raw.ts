@@ -27,6 +27,10 @@ export class KubectlRawRestClient implements RestClient {
     public readonly contextName?: string,
   ) {}
 
+  [Symbol.dispose](): void {
+    // Nothing to close.
+  }
+
   async runKubectl(args: string[], opts: {
     abortSignal?: AbortSignal;
     bodyRaw?: Uint8Array;
