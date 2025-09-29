@@ -36,7 +36,7 @@ const isVerbose = Deno.args.includes('--verbose');
  * TODO: This variable could be used for an optimization, when available.
  */
 
-export class KubeConfigRestClient implements RestClient {
+export class KubeConfigRestClient implements RestClient, Disposable {
   constructor(
     protected ctx: KubeConfigContext,
     protected httpClient: Deno.HttpClient | null,
@@ -93,10 +93,11 @@ export class KubeConfigRestClient implements RestClient {
     return client;
   }
 
-  close: () => void = () => {
+  [Symbol.dispose]() {
     this.httpClient?.close();
     this.httpClient = null;
   }
+  close: () => void = this[Symbol.dispose].bind(this);
 
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
   performRequest(opts: RequestOptions & {expectStream: true; expectJson: true}): Promise<ReadableStream<JSONValue>>;
