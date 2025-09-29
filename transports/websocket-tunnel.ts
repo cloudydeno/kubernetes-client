@@ -24,6 +24,7 @@ export function openWebsocketTunnel(
 ): KubernetesTunnel {
   const url = opts.url.replace(/^http/, 'ws');
   const websocket = new WebSocket(url, {
+    //@ts-ignore Types for this only pass under Deno 2.5+
     headers: opts.headers,
     protocols: opts.protocols,
     client: opts.httpClient,
