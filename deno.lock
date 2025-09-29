@@ -1,7 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@cloudydeno/stream-observables@1": "1.4.1",
+    "jsr:@cloudydeno/socket-fetch@0.2.1": "0.2.1",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/path@1": "1.1.2",
@@ -9,8 +9,8 @@
     "jsr:@std/yaml@1": "1.0.9"
   },
   "jsr": {
-    "@cloudydeno/stream-observables@1.4.1": {
-      "integrity": "555aa3d786fcfd066d096fc943ea47afc688618e95146e615705e981008f57c0"
+    "@cloudydeno/socket-fetch@0.2.1": {
+      "integrity": "5a4088ea8903660f4794c235cf7e36f12dc077b23f8df02a48c87766a5474bc9"
     },
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
@@ -36,7 +36,6 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@cloudydeno/stream-observables@1",
       "jsr:@std/path@1",
       "jsr:@std/streams@1",
       "jsr:@std/yaml@1"

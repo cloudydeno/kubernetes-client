@@ -1,8 +1,7 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-net --unstable-net --cert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-import { WebsocketRestClient } from "../via-websocket.ts";
-
-const client = await WebsocketRestClient.forInCluster();
+import { autoDetectClient } from '@cloudydeno/kubernetes-client';
+const client = await autoDetectClient();
 
 const querystring = new URLSearchParams();
 querystring.append('command', 'uptime');
@@ -12,33 +11,22 @@ querystring.set('stderr', 'true');
 
 const tunnel = await client.performRequest({
   method: 'POST',
-  path: `/api/v1/namespaces/${'dns'}/pods/${'dns-sync-internet-69db7776bc-ktvwn'}/exec`,
+  path: `/api/v1/namespaces/${'dns'}/pods/${'dns-sync-internet-7bb789dd4-7rg9w'}/exec`,
   querystring,
   expectTunnel: ['v5.channel.k8s.io'],
 });
 
-const stdout = await tunnel.getChannel({
-  streamIndex: 1,
-  readable: true,
-  writable: false,
-}).then(x => x.readable);
-
-const stderr = await tunnel.getChannel({
-  streamIndex: 2,
-  readable: true,
-  writable: false,
-}).then(x => x.readable);
-
-const status = await tunnel.getChannel({
-  streamIndex: 3,
-  readable: true,
-  writable: false,
-}).then(x => x.readable);
-await tunnel.ready();
+const stdout = tunnel.getReadableStream({ index: 1 });
+const stderr = tunnel.getReadableStream({ index: 2 });
+const status = tunnel.getReadableStream({ index: 3 });
+await tunnel.whenReady();
 
 const [statusJson] = await Promise.all([
   new Response(status).json(),
   stdout.pipeTo(Deno.stdout.writable, { preventClose: true }),
   stderr.pipeTo(Deno.stderr.writable, { preventClose: true }),
 ]);
-console.error(statusJson);
+
+if (statusJson.status !== 'Success') {
+  console.error(statusJson.message);
+}

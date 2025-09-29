@@ -69,3 +69,25 @@ export class WatchEventTransformer<T,U> extends TransformStream<JSONObject, Watc
     super({ transform: reader.processObject.bind(reader) });
   }
 }
+
+
+/** Drops the first 2 bytes of the stream. */
+export class DropPortTransformer extends TransformStream<Uint8Array, Uint8Array> {
+  constructor() {
+    let remaining = 2;
+    super({
+      transform(chunk, ctlr) {
+        if (remaining > 0) {
+          if (chunk.byteLength > remaining) {
+            ctlr.enqueue(chunk.slice(remaining));
+            remaining = 0;
+          } else {
+            remaining -= chunk.byteLength;
+          }
+        } else {
+          ctlr.enqueue(chunk);
+        }
+      },
+    });
+  }
+}

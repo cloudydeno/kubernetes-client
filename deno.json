@@ -2,7 +2,6 @@
   "name": "@cloudydeno/kubernetes-client",
   "version": "0.7.7",
   "imports": {
-    "@cloudydeno/stream-observables": "jsr:@cloudydeno/stream-observables@^1",
     "@std/path": "jsr:@std/path@^1",
     "@std/streams": "jsr:@std/streams@^1",
     "@std/yaml": "jsr:@std/yaml@^1"
@@ -17,7 +16,6 @@
     "./transports/autodetection.ts": "./transports/autodetection.ts",
     "./transports/via-kubeconfig.ts": "./transports/via-kubeconfig.ts",
     "./transports/via-kubectl-raw.ts": "./transports/via-kubectl-raw.ts",
-    "./tunnel-beta/via-websocket.ts": "./tunnel-beta/via-websocket.ts",
     ".": "./mod.ts"
   },
   "publish": {

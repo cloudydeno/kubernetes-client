@@ -48,8 +48,8 @@ jobs:
     - name: Check demo.ts
       run: time deno check demo.ts
 
-    - name: Check tunnel-beta/examples/ws-exec-poc.ts
-      run: time deno check --unstable-net tunnel-beta/examples/ws-exec-poc.ts
+    - name: Check examples
+      run: time deno check examples/*
 
   check-publish:
     runs-on: ubuntu-latest
