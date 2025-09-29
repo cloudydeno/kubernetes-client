@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-env --allow-read --allow-net --unstable-net --cert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+#!/usr/bin/env -S deno run --allow-env --allow-read --allow-net
 
 import { autoDetectClient } from '@cloudydeno/kubernetes-client';
 using client = await autoDetectClient();

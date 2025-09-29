@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-env --allow-read --allow-net --unstable-net --cert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+#!/usr/bin/env -S deno run --allow-env --allow-read --allow-net
 
 // A library that can fetch HTTP over arbitrary streams, such as a pod portforward
 import { type Dialer, Client } from "jsr:@cloudydeno/socket-fetch@0.2.1";

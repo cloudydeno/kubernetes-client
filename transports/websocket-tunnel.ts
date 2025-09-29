@@ -59,7 +59,11 @@ export class WebsocketTunnel implements KubernetesTunnel {
           else downstream.close();
         }
         this.downstreamChannels.clear();
-        fail(new Error(`WebSocket closed during setup with code ${evt.code} (reason: ${evt.reason})`));
+        if (evt.code) {
+          fail(new Error(`WebSocket closed during setup with code ${evt.code} (reason: ${evt.reason})`));
+        } else {
+          fail(new Error(`WebSocket connection rejected. Does the requested path/Pod exist?`));
+        }
       });
     });
 
