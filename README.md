@@ -91,6 +91,13 @@ please feel free to file a Github Issue.
 
 ## Changelog
 
+* `v0.8.0` on `2025-09-29`:
+    Breaking API change! Tunnels have been reimplemented and now work out of the box.
+    Tunnels are essential for specific pod APIs: `Attach`, `Exec`, and `PortForward`.
+    To use tunnels in this version, you need **Deno v2.5.2 or later**.
+    The previous `tunnel-beta/` implementation has been deleted.
+    Exported API is otherwise compatible with previous versions.
+
 * `v0.7.0` on `2023-08-13`:
     Port `KubectlRawRestClient` over to newer `Deno.Command()` API.
     Support patching subresources & opening PodExec tunnels in `KubectlRawRestClient`.
