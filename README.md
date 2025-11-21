@@ -91,7 +91,7 @@ please feel free to file a Github Issue.
 
 ## Changelog
 
-* `v0.8.0` on `2025-09-29`:
+* `v0.8.0` on `2025-11-21`:
     Breaking API change! Tunnels have been reimplemented and now work out of the box.
     Tunnels are essential for specific pod APIs: `Attach`, `Exec`, and `PortForward`.
     To use tunnels in this version, you need **Deno v2.5.2 or later**.

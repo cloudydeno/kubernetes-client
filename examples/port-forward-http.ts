@@ -3,7 +3,7 @@
 import { autoDetectClient, DropPortTransformer } from '@cloudydeno/kubernetes-client';
 const client = await autoDetectClient();
 
-const podList = await client.performRequest({
+const podList: any = await client.performRequest({
   method: 'GET',
   path: `/api/v1/namespaces/${'kube-system'}/pods`,
   querystring: new URLSearchParams([
