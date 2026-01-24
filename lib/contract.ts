@@ -26,33 +26,26 @@ export interface RequestOptions {
   expectJson?: boolean;
 }
 
-export interface KubernetesTunnel {
+export interface KubernetesTunnel extends Disposable {
   /** Indicates which network protocol is in use.
    * This changes semantics, largely due to Kubernetes tunnel API quirks. */
   readonly transportProtocol: 'SPDY' | 'WebSocket' | 'Opaque';
   readonly subProtocol: string;
-  /** Set up a channel, using either SPDY or Websocket semantics. */
-  getChannel<
-    Treadable extends boolean,
-    Twritable extends boolean,
-  >(opts: {
-    // Different transports identify streams different ways
+  getReadableStream(ids: {
+    index?: number;
     spdyHeaders?: Record<string,string | number>;
-    streamIndex?: number;
-    // What streams should be hooked up
-    readable: Treadable;
-    writable: Twritable;
-  }): Promise<{
-    readable: Treadable extends true ? ReadableStream<Uint8Array> : null;
-    writable: Twritable extends true ? WritableStream<Uint8Array> : null;
-  }>;
+  }): ReadableStream<Uint8Array>;
+  getWritableStream(ids: {
+    index?: number;
+    spdyHeaders?: Record<string,string | number>;
+  }): WritableStream<Uint8Array>;
   /** Call once after creating the initial channels. */
-  ready(): Promise<void>;
+  whenReady(): Promise<void>;
   /** Disconnects the underlying transport. */
-  stop(): Promise<void>;
+  close(): Promise<void>;
 }
 
-export interface RestClient {
+export interface RestClient extends Disposable {
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
   performRequest(opts: RequestOptions & {expectStream: true; expectJson: true}): Promise<ReadableStream<JSONValue>>;
   performRequest(opts: RequestOptions & {expectStream: true}): Promise<ReadableStream<Uint8Array>>;

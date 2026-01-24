@@ -27,6 +27,10 @@ export class KubectlRawRestClient implements RestClient {
     public readonly contextName?: string,
   ) {}
 
+  [Symbol.dispose](): void {
+    // Nothing to close.
+  }
+
   async runKubectl(args: string[], opts: {
     abortSignal?: AbortSignal;
     bodyRaw?: Uint8Array;
@@ -91,7 +95,7 @@ export class KubectlRawRestClient implements RestClient {
     if (opts.abortSignal?.aborted) throw new Error(`Given AbortSignal is already aborted`);
 
     if (opts.expectTunnel) {
-      if (opts.expectTunnel.includes('v4.channel.k8s.io')) {
+      if (opts.expectTunnel.includes('v5.channel.k8s.io')) {
         // We can implement PodExec with `kubectl exec`, for this specific route:
         const match = new URLPattern({
           pathname: '/api/:version/namespaces/:namespace/pods/:podName/exec',
@@ -185,27 +189,26 @@ export class KubectlRawRestClient implements RestClient {
 
     return {
       transportProtocol: 'Opaque',
-      subProtocol: 'v4.channel.k8s.io',
-      ready: () => Promise.resolve(), // we don't actually know!
-      stop: () => Promise.resolve(p.kill()),
-      getChannel: (opts) => {
-        if (opts.streamIndex == 0 && wantsStdin) {
-          return Promise.resolve({ writable: p.stdin } as any);
-        }
-        if (opts.streamIndex == 1) {
-          return Promise.resolve({ readable: p.stdout } as any);
-        }
-        if (opts.streamIndex == 2) {
+      subProtocol: 'v5.channel.k8s.io',
+      whenReady: () => Promise.resolve(), // we don't actually know!
+      [Symbol.dispose]: () => p.kill(),
+      close: () => Promise.resolve(p.kill()),
+      getWritableStream: (opts) => {
+        if (opts.index == 0 && wantsStdin) return p.stdin;
+        throw new Error(`BUG: Unmapped stream in kubectl exec emulation`);
+      },
+      getReadableStream: (opts) => {
+        if (opts.index == 1) return p.stdout;
+        if (opts.index == 2) {
           // We don't pipe stderr, but we don't block it either
           // Just provide a dummy stream for compatibility
-          const readable = new ReadableStream({
+          return new ReadableStream({
             start(ctlr) { ctlr.close() },
           });
-          return Promise.resolve({ readable } as any);
         }
-        if (opts.streamIndex == 3) {
+        if (opts.index == 3) {
           // Invent a JSON stream and give a limited ExecStatus
-          const readable = new ReadableStream({
+          return new ReadableStream({
             async start(ctlr) {
               const stat = await status;
               ctlr.enqueue(new TextEncoder().encode(JSON.stringify({
@@ -215,9 +218,8 @@ export class KubectlRawRestClient implements RestClient {
               ctlr.close();
             },
           });
-          return Promise.resolve({ readable } as any);
         }
-        throw new Error(`BUG: Unmocked stream ${opts.streamIndex} in kubectl client!`);
+        throw new Error(`BUG: Unmapped stream in kubectl exec emulation`);
       },
     };
   }

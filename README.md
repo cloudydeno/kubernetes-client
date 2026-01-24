@@ -3,7 +3,7 @@
 # `jsr:@cloudydeno/kubernetes-client`
 
 This module implements several ways of sending authenticated requests
-to the Kubernetes API from deno scripts.
+to the Kubernetes API from Deno programs.
 
 Kubernetes is a complex architechure which likes using sophisticated networking concepts,
 while Deno is a younger runtime, so there's some mismatch in capabilities.
@@ -41,23 +41,20 @@ console.log(podList);
 The available clients are:
 
 1. `InCluster` which uses the current pod's service account to talk to the control plane.
-    With Deno, pass  `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local`.
-    With NodeJS, set environment variable `NODE_EXTRA_CA_CERTS=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`.
+    Use with Deno flags: `--allow-read=/var/run/secrets/kubernetes.io --allow-net=kubernetes.default.svc.cluster.local`
 
 1. `KubectlRaw` which will run individual `kubectl` commands to send requests to Kubernetes.
     This can be helpful when connecting to a cluster from a laptop.
     Authentication won't be a problem since `kubectl` already handles all of that.
-    With Deno, pass `--allow-run=kubectl` to authorize this client.
-    Not yet supported with NodeJS.
+    Use with Deno flag `--allow-run=kubectl` to authorize this client.
 
 1. `KubeConfig` which reads your `~/.kube/config` file and attempts to connect to the current default cluster.
     Usually this works, but it might not always. Some of the issues would be fixable given a bug report.
-    With Deno, you'll probably want to pass at least  `--allow-env --allow-net --allow-read=$HOME/.kube`.
-    Not yet supported with NodeJS.
+    You'll probably want to pass at least  `--allow-env --allow-net --allow-read=$HOME/.kube` to Deno.
 
 1. `KubectlProxy` which simply sends HTTP requests to `http://localhost:8081`.
     You'll need to first launch `kubectl proxy` in a separate terminal/shell and leave it running.
-    With Deno, pass `--allow-net=localhost:8001` to authorize this client.
+    Use with Deno flag `--allow-net=localhost:8001` to authorize this client.
 
 An error message is shown when no client is usable, something like this:
 
@@ -74,7 +71,7 @@ Error: Failed to load any possible Kubernetes clients:
 You can also directly instantiate a particular client if you don't want to depend on autodetection.
 
 * `KubectlRawRestClient` invokes `kubectl --raw` for every HTTP call.
-    Dependable for development, though a couple APIs are not possible to implement.
+    Dependable for development, though several methods are not available due to kubectl limitations.
 
 * `KubeConfigRestClient` uses `fetch()` to issue HTTP requests. There's a few different functions to configure it:
 
@@ -86,7 +83,9 @@ You can also directly instantiate a particular client if you don't want to depen
 
 ## Development
 
-Check out `lib/contract.ts` to see the type/API contract.
+If you are unsure how to issue a specific request from your own library/code,
+or if your usage results in any `TODO: ...` error message from my code,
+please feel free to file a Github Issue.
 
 The `kubectl` client logs the issued commands if `--verbose` is passed to the Deno program.
 
@@ -95,6 +94,13 @@ or if your usage results in any `TODO: ...` error message from my code,
 please feel free to file a Github Issue.
 
 ## Changelog
+
+* `v0.8.0` on `2025-11-21`:
+    Breaking API change! Tunnels have been reimplemented and now work out of the box.
+    Tunnels are essential for specific pod APIs: `Attach`, `Exec`, and `PortForward`.
+    To use tunnels in this version, you need **Deno v2.5.2 or later**.
+    The previous `tunnel-beta/` implementation has been deleted.
+    Exported API is otherwise compatible with previous versions.
 
 * `v0.7.0` on `2023-08-13`:
     Port `KubectlRawRestClient` over to newer `Deno.Command()` API.
@@ -105,7 +111,10 @@ please feel free to file a Github Issue.
     * `v0.7.1` on `2023-09-24`: Update std dependencies to `/std@0.202.0`
     * `v0.7.2` on `2023-12-29`: Fix `WebsocketTunnel` for Deno v1.38 change
     * `v0.7.3` on `2024-09-10`: Drop support for Deno v1.40 and earlier.
-    * `v0.7.3` on `2025-09-18`: Drop `/x/` publication, now JSR-only
+    * `v0.7.4` on `2025-04-23`: Add support for relative paths in Kubeconfig (#24, thanks!)
+    * `v0.7.5` on `2025-05-22`: More `abortSignal`, make RestClients closable
+    * `v0.7.6` on `2025-09-18`: Drop `/x/` publication, now JSR-only
+    * `v0.7.7` on `2025-09-19`: Update docs, target only Deno v2, add v5.channel.k8s.io
 
 * `v0.6.0` on `2023-08-08`:
     Introduce an API for opening Kubernetes tunnels, useful for `PodExec` and others.

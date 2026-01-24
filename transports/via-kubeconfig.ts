@@ -1,7 +1,11 @@
 import { TextLineStream } from '@std/streams/text-line-stream';
+
 import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
-import { KubeConfig, type KubeConfigContext } from '../lib/kubeconfig.ts';
+import { createConfigFromEnvironment, createConfigFromPath, createInClusterConfig, createSimpleUrlConfig } from "../lib/kubeconfig/create.ts";
+import type { KubeConfigContext } from "../lib/kubeconfig/context.ts";
+import type { KubeConfig } from "../lib/kubeconfig/config.ts";
+import { openWebsocketTunnel } from "./websocket-tunnel.ts";
 
 const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
@@ -33,7 +37,7 @@ const isVerbose = globalThis.Deno?.args.includes('--verbose');
  * TODO: This variable could be used for an optimization, when available.
  */
 
-export class KubeConfigRestClient implements RestClient {
+export class KubeConfigRestClient implements RestClient, Disposable {
   constructor(
     protected ctx: KubeConfigContext,
     protected httpClient: Deno.HttpClient | null,
@@ -43,15 +47,13 @@ export class KubeConfigRestClient implements RestClient {
   defaultNamespace?: string;
 
   static async forInCluster(): Promise<RestClient> {
-    return this.forKubeConfig(
-      await KubeConfig.getInClusterConfig());
+    return await this.forKubeConfig(
+      await createInClusterConfig());
   }
 
-  static forKubectlProxy(): Promise<RestClient> {
-    return this.forKubeConfig(
-      KubeConfig.getSimpleUrlConfig({
-        baseUrl: 'http://localhost:8001',
-      }));
+  static async forKubectlProxy(): Promise<RestClient> {
+    return await this.forKubeConfig(
+      createSimpleUrlConfig('http://localhost:8001'));
   }
 
   static async readKubeConfig(
@@ -59,8 +61,8 @@ export class KubeConfigRestClient implements RestClient {
     contextName?: string,
   ): Promise<RestClient> {
     return this.forKubeConfig(path
-      ? await KubeConfig.readFromPath(path)
-      : await KubeConfig.getDefaultConfig(), contextName);
+      ? await createConfigFromPath(path)
+      : await createConfigFromEnvironment(), contextName);
   }
 
   static async forKubeConfig(
@@ -68,32 +70,40 @@ export class KubeConfigRestClient implements RestClient {
     contextName?: string,
   ): Promise<RestClient> {
     const ctx = config.fetchContext(contextName);
+    return await this.forKubeConfigContext(ctx);
+  }
 
-    const serverTls = await ctx.getServerTls();
-    const tlsAuth = await ctx.getClientTls();
+  static async forKubeConfigContext(
+    ctx: KubeConfigContext,
+    signal?: AbortSignal,
+  ): Promise<RestClient> {
+    const serverTls = await ctx.getServerTls(signal);
+    const tlsAuth = await ctx.getClientTls(signal);
 
     let httpClient: Deno.HttpClient | null = null;
     if (serverTls || tlsAuth) {
-      if (globalThis.Deno && Deno.createHttpClient) {
-        httpClient = Deno.createHttpClient({
+      if (globalThis.Deno) {
+        httpClient = Deno.createHttpClient?.({
           caCerts: serverTls ? [serverTls.serverCert] : [],
-          //@ts-ignore-error deno unstable API. Not typed?
           cert: tlsAuth?.userCert,
           key: tlsAuth?.userKey,
         });
-      } else if (tlsAuth) {
-        console.error('WARN: cannot use certificate-based auth without --unstable');
-      } else if (isVerbose) {
-        console.error('WARN: cannot have Deno trust the server CA without --unstable');
+      } else {
+        console.error('TODO: This Kubernetes client does not support TLS under NodeJS');
       }
     }
 
-    return new this(ctx, httpClient);
+    const client = new this(ctx, httpClient);
+    signal?.addEventListener('abort', client.close);
+    return client;
   }
 
-  close() {
+  [Symbol.dispose]() {
     this.httpClient?.close();
+    this.httpClient = null;
   }
+  // Bound function to allow using directly as a callback
+  close: () => void = this[Symbol.dispose].bind(this);
 
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
   performRequest(opts: RequestOptions & {expectStream: true; expectJson: true}): Promise<ReadableStream<JSONValue>>;
@@ -110,15 +120,23 @@ export class KubeConfigRestClient implements RestClient {
       console.error(opts.method, path);
     }
 
-    if (opts.expectTunnel) throw new Error(
-      `Channel-based APIs are not currently implemented by this client.`);
-
     const headers: Record<string, string> = {};
 
     if (!this.ctx.cluster.server) throw new Error(`No server URL found in KubeConfig`);
-    const authHeader = await this.ctx.getAuthHeader();
+    const url = new URL(path, this.ctx.cluster.server).toString();
+
+    const authHeader = await this.ctx.getAuthHeader(opts.abortSignal);
     if (authHeader) {
       headers['Authorization'] = authHeader;
+    }
+
+    if (opts.expectTunnel) {
+      return openWebsocketTunnel({
+        httpClient: this.httpClient ?? undefined,
+        protocols: opts.expectTunnel,
+        signal: opts.abortSignal,
+        url, headers,
+      });
     }
 
     const accept = opts.accept ?? (opts.expectJson ? 'application/json' : undefined);
@@ -127,7 +145,7 @@ export class KubeConfigRestClient implements RestClient {
     const contentType = opts.contentType ?? (opts.bodyJson ? 'application/json' : undefined);
     if (contentType) headers['Content-Type'] = contentType;
 
-    const resp = await fetch(new URL(path, this.ctx.cluster.server), {
+    const resp = await fetch(url, {
       method: opts.method,
       body: opts.bodyStream ?? opts.bodyRaw ?? JSON.stringify(opts.bodyJson),
       redirect: 'error',
