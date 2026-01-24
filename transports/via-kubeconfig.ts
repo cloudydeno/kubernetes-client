@@ -39,11 +39,15 @@ const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
 export class KubeConfigRestClient implements RestClient, Disposable {
   constructor(
-    protected ctx: KubeConfigContext,
-    protected httpClient: Deno.HttpClient | null,
+    ctx: KubeConfigContext,
+    httpClient: Deno.HttpClient | null,
   ) {
+    this.ctx = ctx;
+    this.httpClient = httpClient;
     this.defaultNamespace = ctx.defaultNamespace || 'default';
   }
+  protected ctx: KubeConfigContext;
+  protected httpClient: Deno.HttpClient | null;
   defaultNamespace?: string;
 
   static async forInCluster(): Promise<RestClient> {

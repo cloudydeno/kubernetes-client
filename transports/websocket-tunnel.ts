@@ -42,10 +42,12 @@ export function openWebsocketTunnel(
  * You must disconnect the overall tunnel if you wish to end things.
  */
 export class WebsocketTunnel implements KubernetesTunnel {
+  private readonly websocket: WebSocket;
   constructor(
-    private readonly websocket: WebSocket,
+    websocket: WebSocket,
     stopSignal?: AbortSignal,
   ) {
+    this.websocket = websocket;
 
     stopSignal?.addEventListener('abort', this.close.bind(this));
 

@@ -6,8 +6,11 @@ import type { RestClient } from '../lib/contract.ts';
 type ClientProvider = () => Promise<RestClient>;
 export class ClientProviderChain {
   constructor(
-    public chain: Array<[string, ClientProvider]>,
-  ) {}
+    chain: Array<[string, ClientProvider]>,
+  ) {
+    this.chain = chain;
+  }
+  public chain: Array<[string, ClientProvider]>;
   async getClient(): Promise<RestClient> {
     const errors: Array<string> = [];
     for (const [label, factory] of this.chain) {

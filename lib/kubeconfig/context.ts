@@ -18,10 +18,17 @@ import { readTextFile } from "./os.ts";
 
 export class KubeConfigContext {
   constructor(
-    public readonly context: ContextConfig,
-    public readonly cluster: ClusterConfig,
-    public readonly user: UserConfig,
-  ) {}
+    context: ContextConfig,
+    cluster: ClusterConfig,
+    user: UserConfig,
+  ) {
+    this.context = context;
+    this.cluster = cluster;
+    this.user = user;
+  }
+  public readonly context: ContextConfig;
+  public readonly cluster: ClusterConfig;
+  public readonly user: UserConfig;
   private execCred: ExecCredentialStatus | null = null;
 
   get defaultNamespace(): string | null {

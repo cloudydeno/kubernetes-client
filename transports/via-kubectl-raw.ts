@@ -24,8 +24,11 @@ export class KubectlRawRestClient implements RestClient {
   namespace = undefined; // TODO: read from `kubectl config view --output=json`
 
   constructor(
-    public readonly contextName?: string,
-  ) {}
+    contextName?: string,
+  ) {
+    this.contextName = contextName;
+  }
+  public readonly contextName?: string;
 
   [Symbol.dispose](): void {
     // Nothing to close.
