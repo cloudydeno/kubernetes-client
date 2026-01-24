@@ -6,6 +6,7 @@ import { createConfigFromEnvironment, createConfigFromPath, createInClusterConfi
 import type { KubeConfigContext } from "../lib/kubeconfig/context.ts";
 import type { KubeConfig } from "../lib/kubeconfig/config.ts";
 import { openWebsocketTunnel } from "./websocket-tunnel.ts";
+import type { FetchClient } from "./types.ts";
 
 const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
@@ -36,18 +37,17 @@ const isVerbose = globalThis.Deno?.args.includes('--verbose');
  * Note that KUBERNETES_SERVER_HOST is not used for historical reasons.
  * TODO: This variable could be used for an optimization, when available.
  */
-
 export class KubeConfigRestClient implements RestClient, Disposable {
   constructor(
     ctx: KubeConfigContext,
-    httpClient: Deno.HttpClient | null,
+    fetchClient: FetchClient | null,
   ) {
     this.ctx = ctx;
-    this.httpClient = httpClient;
+    this.fetchClient = fetchClient;
     this.defaultNamespace = ctx.defaultNamespace || 'default';
   }
   protected ctx: KubeConfigContext;
-  protected httpClient: Deno.HttpClient | null;
+  protected fetchClient: FetchClient | null;
   defaultNamespace?: string;
 
   static async forInCluster(): Promise<RestClient> {
@@ -84,27 +84,37 @@ export class KubeConfigRestClient implements RestClient, Disposable {
     const serverTls = await ctx.getServerTls(signal);
     const tlsAuth = await ctx.getClientTls(signal);
 
-    let httpClient: Deno.HttpClient | null = null;
+    let fetchClient: FetchClient | null = null;
     if (serverTls || tlsAuth) {
       if (globalThis.Deno) {
-        httpClient = Deno.createHttpClient?.({
+        const client = Deno.createHttpClient({
           caCerts: serverTls ? [serverTls.serverCert] : [],
           cert: tlsAuth?.userCert,
           key: tlsAuth?.userKey,
         });
+        fetchClient = { client };
       } else {
-        console.error('TODO: This Kubernetes client does not support TLS under NodeJS');
+        const { Agent } = await import('undici');
+        const dispatcher = new Agent({
+          connect: {
+            ca: serverTls?.serverCert,
+            cert: tlsAuth?.userCert,
+            key: tlsAuth?.userKey,
+          },
+        });
+        fetchClient = { dispatcher };
       }
     }
 
-    const client = new this(ctx, httpClient);
+    const client = new this(ctx, fetchClient);
     signal?.addEventListener('abort', client.close);
     return client;
   }
 
   [Symbol.dispose]() {
-    this.httpClient?.close();
-    this.httpClient = null;
+    this.fetchClient?.client?.close();
+    this.fetchClient?.dispatcher?.close();
+    this.fetchClient = null;
   }
   // Bound function to allow using directly as a callback
   close: () => void = this[Symbol.dispose].bind(this);
@@ -136,7 +146,7 @@ export class KubeConfigRestClient implements RestClient, Disposable {
 
     if (opts.expectTunnel) {
       return openWebsocketTunnel({
-        httpClient: this.httpClient ?? undefined,
+        fetchClient: this.fetchClient,
         protocols: opts.expectTunnel,
         signal: opts.abortSignal,
         url, headers,
@@ -154,7 +164,7 @@ export class KubeConfigRestClient implements RestClient, Disposable {
       body: opts.bodyStream ?? opts.bodyRaw ?? JSON.stringify(opts.bodyJson),
       redirect: 'error',
       signal: opts.abortSignal,
-      client: this.httpClient,
+      ...this.fetchClient,
       headers,
     } as RequestInit);
 

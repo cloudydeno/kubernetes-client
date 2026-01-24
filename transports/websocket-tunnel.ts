@@ -1,4 +1,5 @@
 import type { KubernetesTunnel } from "../lib/contract.ts";
+import type { FetchClient } from "./types.ts";
 
 /**
  * Implements opening a bidirectional tunnel to access specific Kubernetes APIs.
@@ -18,7 +19,7 @@ export function openWebsocketTunnel(
     url: string;
     protocols: string[];
     headers?: HeadersInit;
-    httpClient?: Deno.HttpClient;
+    fetchClient?: FetchClient | null;
     signal?: AbortSignal;
   },
 ): KubernetesTunnel {
@@ -27,7 +28,7 @@ export function openWebsocketTunnel(
     //@ts-ignore Types for this only pass under Deno 2.5+
     headers: opts.headers,
     protocols: opts.protocols,
-    client: opts.httpClient,
+    ...opts.fetchClient,
   });
   return new WebsocketTunnel(websocket, opts.signal);
 }
