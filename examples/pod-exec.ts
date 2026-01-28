@@ -4,7 +4,7 @@ import { autoDetectClient } from '@cloudydeno/kubernetes-client';
 const client = await autoDetectClient();
 
 const namespace = client.defaultNamespace ?? 'default';
-const containerName = 'srvv';
+const containerName = 'srv';
 
 // Find the first pod in the namespace.
 // In practice, @cloudydeno/kubernetes-apis would provide a typed binding for this call:
