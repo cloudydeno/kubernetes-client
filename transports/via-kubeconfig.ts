@@ -102,6 +102,27 @@ export class KubeConfigRestClient implements RestClient, Disposable {
             key: tlsAuth?.userKey,
           },
         });
+        // // This hack attempts to intercept Kubernetes error statuses from websocket requests.
+        // // The missing piece is a way to return the received status to the calling code.
+        // const origDispatch = dispatcher.dispatch.bind(dispatcher);
+        // dispatcher.dispatch = (options, handler) => {
+        //   if (options.upgrade !== 'websocket') {
+        //     return origDispatch(options, handler);
+        //   }
+        //   const proxy = new Proxy(handler, {
+        //     get(handlers, key) {
+        //       console.log('get', key);
+        //       if (key == 'onData') {
+        //         return (...x) => {
+        //           console.log('onData', x.toString())
+        //           return handlers[key](...x);
+        //         }
+        //       }
+        //       return handlers[key];
+        //     },
+        //   })
+        //   return origDispatch(options, proxy);
+        // }
         fetchClient = { dispatcher };
       }
     }

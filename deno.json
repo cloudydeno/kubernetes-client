@@ -4,7 +4,8 @@
   "imports": {
     "@std/path": "jsr:@std/path@^1",
     "@std/streams": "jsr:@std/streams@^1",
-    "@std/yaml": "jsr:@std/yaml@^1"
+    "@std/yaml": "jsr:@std/yaml@^1",
+    "undici": "npm:undici@^7"
   },
   "exports": {
     "./lib/contract.ts": "./lib/contract.ts",
