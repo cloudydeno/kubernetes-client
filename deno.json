@@ -1,6 +1,6 @@
 {
   "name": "@cloudydeno/kubernetes-client",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "imports": {
     "@std/path": "jsr:@std/path@^1",
     "@std/streams": "jsr:@std/streams@^1",
