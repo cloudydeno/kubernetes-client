@@ -3,8 +3,11 @@ import type { RawKubeConfig, ContextConfig, ClusterConfig, UserConfig } from "./
 
 export class KubeConfig {
   constructor(
-    public readonly data: RawKubeConfig,
-  ) {}
+    data: RawKubeConfig,
+  ) {
+    this.data = data;
+  }
+  public readonly data: RawKubeConfig;
 
   static fromRaw(data: RawKubeConfig): KubeConfig {
     return new this(data);

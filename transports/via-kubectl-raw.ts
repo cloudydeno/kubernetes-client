@@ -2,7 +2,7 @@ import { TextLineStream } from '@std/streams/text-line-stream';
 import type { RestClient, RequestOptions, JSONValue, KubernetesTunnel } from '../lib/contract.ts';
 import { JsonParsingTransformer } from '../lib/stream-transformers.ts';
 
-const isVerbose = Deno.args.includes('--verbose');
+const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
 /**
  * A RestClient for easily running on a developer's local machine.
@@ -24,8 +24,11 @@ export class KubectlRawRestClient implements RestClient {
   namespace = undefined; // TODO: read from `kubectl config view --output=json`
 
   constructor(
-    public readonly contextName?: string,
-  ) {}
+    contextName?: string,
+  ) {
+    this.contextName = contextName;
+  }
+  public readonly contextName?: string;
 
   [Symbol.dispose](): void {
     // Nothing to close.

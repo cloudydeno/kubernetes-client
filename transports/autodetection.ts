@@ -6,8 +6,11 @@ import type { RestClient } from '../lib/contract.ts';
 type ClientProvider = () => Promise<RestClient>;
 export class ClientProviderChain {
   constructor(
-    public chain: Array<[string, ClientProvider]>,
-  ) {}
+    chain: Array<[string, ClientProvider]>,
+  ) {
+    this.chain = chain;
+  }
+  public chain: Array<[string, ClientProvider]>;
   async getClient(): Promise<RestClient> {
     const errors: Array<string> = [];
     for (const [label, factory] of this.chain) {
@@ -24,7 +27,7 @@ export class ClientProviderChain {
       } catch (err) {
         const srcName = `  - ${label} `;
         if (err instanceof Error) {
-          errors.push(srcName+(err.stack?.split('\n')[0] || err.message));
+          errors.push(srcName+(err.cause || err.stack?.split('\n')[0] || err.message));
         } else if (err) {
           errors.push(srcName+err.toString());
         }

@@ -14,13 +14,21 @@ import {
   ExecAuthExtensionName,
   isExecCredential,
 } from "./definitions.ts";
+import { readTextFile } from "./os.ts";
 
 export class KubeConfigContext {
   constructor(
-    public readonly context: ContextConfig,
-    public readonly cluster: ClusterConfig,
-    public readonly user: UserConfig,
-  ) {}
+    context: ContextConfig,
+    cluster: ClusterConfig,
+    user: UserConfig,
+  ) {
+    this.context = context;
+    this.cluster = cluster;
+    this.user = user;
+  }
+  public readonly context: ContextConfig;
+  public readonly cluster: ClusterConfig;
+  public readonly user: UserConfig;
   private execCred: ExecCredentialStatus | null = null;
 
   get defaultNamespace(): string | null {
@@ -32,7 +40,7 @@ export class KubeConfigContext {
   } | null> {
     let serverCert = atob(this.cluster["certificate-authority-data"] ?? '') || null;
     if (!serverCert && this.cluster["certificate-authority"]) {
-      serverCert = await Deno.readTextFile(this.cluster["certificate-authority"], { signal });
+      serverCert = await readTextFile(this.cluster["certificate-authority"], { signal });
     }
 
     if (serverCert) {
@@ -47,12 +55,12 @@ export class KubeConfigContext {
   } | null> {
     let userCert = atob(this.user["client-certificate-data"] ?? '') || null;
     if (!userCert && this.user["client-certificate"]) {
-      userCert = await Deno.readTextFile(this.user["client-certificate"], { signal });
+      userCert = await readTextFile(this.user["client-certificate"], { signal });
     }
 
     let userKey = atob(this.user["client-key-data"] ?? '') || null;
     if (!userKey && this.user["client-key"]) {
-      userKey = await Deno.readTextFile(this.user["client-key"], { signal });
+      userKey = await readTextFile(this.user["client-key"], { signal });
     }
 
     if (!userKey && !userCert && this.user.exec) {
@@ -82,7 +90,7 @@ export class KubeConfigContext {
       return `Bearer ${this.user.token}`;
 
     } else if (this.user.tokenFile) {
-      const token = await Deno.readTextFile(this.user.tokenFile, { signal });
+      const token = await readTextFile(this.user.tokenFile, { signal });
       return `Bearer ${token.trim()}`;
 
     } else if (this.user['auth-provider']) {
@@ -123,7 +131,7 @@ export class KubeConfigContext {
     const execConfig = this.user['exec'];
     if (!execConfig) throw new Error(`BUG: execConfig disappeared`);
 
-    const isTTY = Deno.stdin.isTerminal();
+    const isTTY = globalThis?.Deno.stdin.isTerminal();
     const stdinPolicy = execConfig.interactiveMode ?? 'IfAvailable';
     if (stdinPolicy == 'Always' && !isTTY) {
       throw new Error(`KubeConfig exec plugin wants a TTY, but stdin is not a TTY`);
@@ -145,6 +153,7 @@ export class KubeConfigContext {
       };
     }
 
+    // TODO: add nodejs impl
     const proc = new Deno.Command(execConfig.command, {
       args: execConfig.args,
       stdin: req.spec.interactive ? 'inherit' : 'null',

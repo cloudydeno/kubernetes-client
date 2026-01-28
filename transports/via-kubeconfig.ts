@@ -6,8 +6,9 @@ import { createConfigFromEnvironment, createConfigFromPath, createInClusterConfi
 import type { KubeConfigContext } from "../lib/kubeconfig/context.ts";
 import type { KubeConfig } from "../lib/kubeconfig/config.ts";
 import { openWebsocketTunnel } from "./websocket-tunnel.ts";
+import type { FetchClient } from "./types.ts";
 
-const isVerbose = Deno.args.includes('--verbose');
+const isVerbose = globalThis.Deno?.args.includes('--verbose');
 
 /**
  * A RestClient which uses a KubeConfig to talk directly to a Kubernetes endpoint.
@@ -36,14 +37,17 @@ const isVerbose = Deno.args.includes('--verbose');
  * Note that KUBERNETES_SERVER_HOST is not used for historical reasons.
  * TODO: This variable could be used for an optimization, when available.
  */
-
 export class KubeConfigRestClient implements RestClient, Disposable {
   constructor(
-    protected ctx: KubeConfigContext,
-    protected httpClient: Deno.HttpClient | null,
+    ctx: KubeConfigContext,
+    fetchClient: FetchClient | null,
   ) {
+    this.ctx = ctx;
+    this.fetchClient = fetchClient;
     this.defaultNamespace = ctx.defaultNamespace || 'default';
   }
+  protected ctx: KubeConfigContext;
+  protected fetchClient: FetchClient | null;
   defaultNamespace?: string;
 
   static async forInCluster(): Promise<RestClient> {
@@ -80,24 +84,60 @@ export class KubeConfigRestClient implements RestClient, Disposable {
     const serverTls = await ctx.getServerTls(signal);
     const tlsAuth = await ctx.getClientTls(signal);
 
-    let httpClient: Deno.HttpClient | null = null;
+    let fetchClient: FetchClient | null = null;
     if (serverTls || tlsAuth) {
-      httpClient = Deno.createHttpClient?.({
-        caCerts: serverTls ? [serverTls.serverCert] : [],
-        cert: tlsAuth?.userCert,
-        key: tlsAuth?.userKey,
-      });
+      if (globalThis.Deno) {
+        const client = Deno.createHttpClient({
+          caCerts: serverTls ? [serverTls.serverCert] : [],
+          cert: tlsAuth?.userCert,
+          key: tlsAuth?.userKey,
+        });
+        fetchClient = { client };
+      } else {
+        const { Agent } = await import('undici');
+        const dispatcher = new Agent({
+          connect: {
+            ca: serverTls?.serverCert,
+            cert: tlsAuth?.userCert,
+            key: tlsAuth?.userKey,
+          },
+        });
+        // // This hack attempts to intercept Kubernetes error statuses from websocket requests.
+        // // The missing piece is a way to return the received status to the calling code.
+        // const origDispatch = dispatcher.dispatch.bind(dispatcher);
+        // dispatcher.dispatch = (options, handler) => {
+        //   if (options.upgrade !== 'websocket') {
+        //     return origDispatch(options, handler);
+        //   }
+        //   const proxy = new Proxy(handler, {
+        //     get(handlers, key) {
+        //       console.log('get', key);
+        //       if (key == 'onData') {
+        //         return (...x) => {
+        //           console.log('onData', x.toString())
+        //           return handlers[key](...x);
+        //         }
+        //       }
+        //       return handlers[key];
+        //     },
+        //   })
+        //   return origDispatch(options, proxy);
+        // }
+        fetchClient = { dispatcher };
+      }
     }
 
-    const client = new this(ctx, httpClient);
+    const client = new this(ctx, fetchClient);
     signal?.addEventListener('abort', client.close);
     return client;
   }
 
   [Symbol.dispose]() {
-    this.httpClient?.close();
-    this.httpClient = null;
+    this.fetchClient?.client?.close();
+    this.fetchClient?.dispatcher?.close();
+    this.fetchClient = null;
   }
+  // Bound function to allow using directly as a callback
   close: () => void = this[Symbol.dispose].bind(this);
 
   performRequest(opts: RequestOptions & {expectTunnel: string[]}): Promise<KubernetesTunnel>;
@@ -127,7 +167,7 @@ export class KubeConfigRestClient implements RestClient, Disposable {
 
     if (opts.expectTunnel) {
       return openWebsocketTunnel({
-        httpClient: this.httpClient ?? undefined,
+        fetchClient: this.fetchClient,
         protocols: opts.expectTunnel,
         signal: opts.abortSignal,
         url, headers,
@@ -145,7 +185,7 @@ export class KubeConfigRestClient implements RestClient, Disposable {
       body: opts.bodyStream ?? opts.bodyRaw ?? JSON.stringify(opts.bodyJson),
       redirect: 'error',
       signal: opts.abortSignal,
-      client: this.httpClient,
+      ...this.fetchClient,
       headers,
     } as RequestInit);
 

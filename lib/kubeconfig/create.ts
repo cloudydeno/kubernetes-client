@@ -12,6 +12,7 @@ import {
   type UserConfig,
 } from "./definitions.ts";
 import { KubeConfig } from "./config.ts";
+import { readTextFile, getEnv } from "./os.ts";
 
 export async function createInClusterConfig({
   // Using this baseUrl
@@ -19,17 +20,20 @@ export async function createInClusterConfig({
   secretsPath = '/var/run/secrets/kubernetes.io/serviceaccount',
   signal = undefined as undefined | AbortSignal,
 }={}): Promise<KubeConfig> {
-  // Avoid interactive prompting for in-cluster secrets.
-  // These are not commonly used from an interactive session.
-  const readPermission = await Deno.permissions.query({name: 'read', path: secretsPath});
-  if (readPermission.state !== 'granted') {
-    throw new Error(`Lacking --allow-read=${secretsPath}`);
+
+  if (globalThis.Deno) {
+    // Avoid interactive prompting for in-cluster secrets.
+    // These are not commonly used from an interactive session.
+    const readPermission = await Deno.permissions.query({name: 'read', path: secretsPath});
+    if (readPermission.state !== 'granted') {
+      throw new Error(`Lacking --allow-read=${secretsPath}`);
+    }
   }
 
   const [namespace, caData, tokenData] = await Promise.all([
-    Deno.readTextFile(joinPath(secretsPath, 'namespace'), { signal }),
-    Deno.readTextFile(joinPath(secretsPath, 'ca.crt'), { signal }),
-    Deno.readTextFile(joinPath(secretsPath, 'token'), { signal }),
+    readTextFile(joinPath(secretsPath, 'namespace'), { signal }),
+    readTextFile(joinPath(secretsPath, 'ca.crt'), { signal }),
+    readTextFile(joinPath(secretsPath, 'token'), { signal }),
   ]);
 
   return KubeConfig.fromPieces({
@@ -47,7 +51,7 @@ export async function createInClusterConfig({
 }
 
 export async function createConfigFromPath(path: string, signal?: AbortSignal): Promise<KubeConfig> {
-  const data = parseYaml(await Deno.readTextFile(path, { signal }));
+  const data = parseYaml(await readTextFile(path, { signal }));
   if (isRawKubeConfig(data)) {
     resolveKubeConfigPaths(dirname(path), data);
     return new KubeConfig(data);
@@ -56,13 +60,17 @@ export async function createConfigFromPath(path: string, signal?: AbortSignal): 
 }
 
 export async function createConfigFromEnvironment(signal?: AbortSignal): Promise<KubeConfig> {
-  const delim = Deno.build.os === 'windows' ? ';' : ':';
-  const path = Deno.env.get("KUBECONFIG");
+  const isWindows = globalThis.Deno
+    ? Deno.build.os === 'windows'
+    : globalThis.process.platform === 'win32';
+
+  const delim = isWindows ? ';' : ':';
+  const path = getEnv("KUBECONFIG");
   const paths = path ? path.split(delim) : [];
 
   if (!path) {
     // default file is ignored if it's not found
-    const defaultPath = joinPath(Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "/root", ".kube", "config");
+    const defaultPath = joinPath(getEnv("HOME") || getEnv("USERPROFILE") || "/root", ".kube", "config");
     try {
       return await createConfigFromPath(defaultPath);
     } catch (err: unknown) {

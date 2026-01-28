@@ -10,6 +10,8 @@ while Deno is a younger runtime, so there's some mismatch in capabilities.
 Deno also has a granular permission system controlling what a program can access.
 Therefore different Deno flags can be given to your program depending on where you are running it.
 
+(NodeJS 20+ is also partially supported by this library)
+
 ## Usage
 
 Here's a basic request, listing all Pods in the `default` namespace.
@@ -81,7 +83,9 @@ You can also directly instantiate a particular client if you don't want to depen
 
 ## Development
 
-Check out `lib/contract.ts` to see the type/API contract.
+If you are unsure how to issue a specific request from your own library/code,
+or if your usage results in any `TODO: ...` error message from my code,
+please feel free to file a Github Issue.
 
 The `kubectl` client logs the issued commands if `--verbose` is passed to the Deno program.
 
