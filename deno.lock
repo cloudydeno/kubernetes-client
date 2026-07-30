@@ -7,7 +7,7 @@
     "jsr:@std/path@1": "1.1.2",
     "jsr:@std/streams@1": "1.0.12",
     "jsr:@std/yaml@1": "1.0.9",
-    "npm:undici@7": "7.19.0"
+    "npm:undici@^8.9.0": "8.9.0"
   },
   "jsr": {
     "@cloudydeno/socket-fetch@0.2.1": {
@@ -36,8 +36,8 @@
     }
   },
   "npm": {
-    "undici@7.19.0": {
-      "integrity": "sha512-Heho1hJD81YChi+uS2RkSjcVO+EQLmLSyUlHyp7Y/wFbxQaGb4WXVKD073JytrjXJVkSZVzoE2MCSOKugFGtOQ=="
+    "undici@8.9.0": {
+      "integrity": "sha512-aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA=="
     }
   },
   "workspace": {
@@ -45,7 +45,7 @@
       "jsr:@std/path@1",
       "jsr:@std/streams@1",
       "jsr:@std/yaml@1",
-      "npm:undici@7"
+      "npm:undici@^8.9.0"
     ]
   }
 }
