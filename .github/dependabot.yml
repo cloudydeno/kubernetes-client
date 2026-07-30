@@ -9,3 +9,12 @@ updates:
       official:
         patterns:
         - "actions/*"
+
+  - package-ecosystem: deno
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      std:
+        patterns:
+        - "@std/*"
