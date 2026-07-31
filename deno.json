@@ -2,9 +2,9 @@
   "name": "@cloudydeno/kubernetes-client",
   "version": "0.8.1",
   "imports": {
-    "@std/path": "jsr:@std/path@^1",
-    "@std/streams": "jsr:@std/streams@^1",
-    "@std/yaml": "jsr:@std/yaml@^1",
+    "@std/path": "jsr:@std/path@^1.1.6",
+    "@std/streams": "jsr:@std/streams@^1.1.1",
+    "@std/yaml": "jsr:@std/yaml@^1.1.2",
     "undici": "npm:undici@^8.9.0"
   },
   "exports": {
