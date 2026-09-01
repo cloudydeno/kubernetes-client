@@ -5,8 +5,8 @@
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/internal@^1.0.14": "1.0.14",
     "jsr:@std/path@^1.1.6": "1.1.6",
-    "jsr:@std/streams@^1.1.1": "1.1.1",
-    "jsr:@std/yaml@^1.1.2": "1.1.2",
+    "jsr:@std/streams@^1.1.2": "1.1.2",
+    "jsr:@std/yaml@^1.2.0": "1.2.0",
     "npm:undici@^8.9.0": "8.9.0"
   },
   "jsr": {
@@ -25,14 +25,14 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/streams@1.1.1": {
-      "integrity": "92556d350e537e9dce527a6d08f6f15be3ff65e656079dea69d15252187c7613",
+    "@std/streams@1.1.2": {
+      "integrity": "0249bf9b78a999f57032ca4d8e7ccaa57579090242640b35ddc948fbb745d3af",
       "dependencies": [
         "jsr:@std/bytes"
       ]
     },
-    "@std/yaml@1.1.2": {
-      "integrity": "de612653c036749ba2044165e316f52412b0f0698afffb7ee80b5331d6d2abae"
+    "@std/yaml@1.2.0": {
+      "integrity": "20beb41e4983ba3437dbefac62b14061ab058e8a187596f19d28ff9035f6e6cf"
     }
   },
   "npm": {
@@ -43,8 +43,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/path@^1.1.6",
-      "jsr:@std/streams@^1.1.1",
-      "jsr:@std/yaml@^1.1.2",
+      "jsr:@std/streams@^1.1.2",
+      "jsr:@std/yaml@^1.2.0",
       "npm:undici@^8.9.0"
     ]
   }
