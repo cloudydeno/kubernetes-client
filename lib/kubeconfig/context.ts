@@ -155,7 +155,7 @@ export class KubeConfigContext {
 
     // TODO: add nodejs impl
     const proc = new Deno.Command(execConfig.command, {
-      args: execConfig.args,
+      args: execConfig.args ?? [],
       stdin: req.spec.interactive ? 'inherit' : 'null',
       stdout: 'piped',
       stderr: 'inherit',
